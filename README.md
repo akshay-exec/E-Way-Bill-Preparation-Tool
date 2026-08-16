@@ -16,6 +16,16 @@ A professional, high-performance desktop application built with Python and Tkint
 
 ---
 
+## 📸 Screenshots
+
+### Main Interface
+![Main Interface](main_interface.png)
+
+### Configurations Panel
+![Configurations Panel](configurations.png)
+
+---
+
 ## 🛠️ Tech Stack
 
 - **Language:** Python 3
