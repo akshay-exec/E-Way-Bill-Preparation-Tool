@@ -1,0 +1,4 @@
+openpyxl>=3.1.2
+tksheet>=7.2.1
+Pillow>=10.2.0
+pyinstaller>=6.3.0

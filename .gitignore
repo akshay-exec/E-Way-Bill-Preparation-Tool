@@ -1,0 +1,27 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+*$*.py
+
+# PyInstaller build files and outputs
+build/
+dist/
+*.spec
+
+# Local application settings
+settings_config.json
+
+# Temporary/test spreadsheet files and JSONs
+*.xlsx
+*.xlsm
+*.xlsb
+*.json
+!requirements.txt
+!app_icon.ico
+!rocket_icon.png
+
+# Operating system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
