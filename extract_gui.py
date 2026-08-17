@@ -59,7 +59,7 @@ COLOR_DANGER_TEXT = "#FFFFFF"      # White Text
 # --- Premium Custom UI Widgets ---
 
 class ModernButton(tk.Button):
-    def __init__(self, parent, text, command, bg=None, hover_bg=None, fg=None, font=("Segoe UI", 9, "bold"), radius=8, **kwargs):
+    def __init__(self, parent, text, command, bg=None, hover_bg=None, fg=None, font=("Segoe UI", 9, "bold"), radius=6, **kwargs):
         self.bg = bg or COLOR_PRIMARY
         self.hover_bg = hover_bg or COLOR_PRIMARY_HOVER
         
@@ -103,7 +103,9 @@ class ModernButton(tk.Button):
         except Exception:
             parent_bg = COLOR_BG
 
-        # Generate anti-aliased pill-shape images using PIL (draw at 4x and scale down)
+        self.radius = radius
+
+        # Generate anti-aliased rounded images using PIL (draw at 4x and scale down)
         from PIL import Image, ImageDraw, ImageTk
         
         def create_pill(color):
@@ -115,7 +117,7 @@ class ModernButton(tk.Button):
             draw = ImageDraw.Draw(img)
             draw.rounded_rectangle(
                 [0, 0, sw, sh],
-                radius=sh // 2,
+                radius=self.radius * scale,
                 fill=color,
                 outline=color
             )
@@ -266,21 +268,21 @@ class EWayBillApp(tk.Tk):
             hover_bg=COLOR_SECONDARY_HOVER,
         ).pack(side=tk.RIGHT, padx=(5, 12), pady=5)
         
-        # 3 Action Buttons on the LEFT — same style as Settings
+        # Action Buttons on the LEFT
         ModernButton(
             header_banner,
             text="Load Data",
             command=self.load_challan,
-            bg=COLOR_SECONDARY,
-            hover_bg=COLOR_SECONDARY_HOVER,
+            bg=COLOR_PRIMARY,
+            hover_bg=COLOR_PRIMARY_HOVER,
         ).pack(side=tk.LEFT, padx=(12, 5), pady=5)
         
         ModernButton(
             header_banner,
             text="Export to Excel",
             command=self.export_ewb,
-            bg=COLOR_SECONDARY,
-            hover_bg=COLOR_SECONDARY_HOVER,
+            bg=COLOR_SUCCESS,
+            hover_bg=COLOR_SUCCESS_HOVER,
         ).pack(side=tk.LEFT, padx=5, pady=5)
         
         ModernButton(
@@ -306,6 +308,70 @@ class EWayBillApp(tk.Tk):
             bg=COLOR_SECONDARY,
             hover_bg=COLOR_SECONDARY_HOVER,
         ).pack(side=tk.LEFT, padx=5, pady=5)
+        
+        # --- Integrated Formula Bar (same height and style as buttons) ---
+        formula_container = tk.Frame(header_banner, bg=COLOR_CARD, height=32)
+        formula_container.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(10, 10), pady=6)
+        formula_container.pack_propagate(False)
+        
+        formula_border = tk.Frame(formula_container, bg=COLOR_BORDER, padx=1, pady=1)
+        formula_border.pack(fill=tk.BOTH, expand=True)
+        
+        formula_inner = tk.Frame(formula_border, bg=COLOR_INPUT_BG)
+        formula_inner.pack(fill=tk.BOTH, expand=True)
+        
+        # Load rocket icon image with PIL
+        self.rocket_img = None
+        try:
+            import os
+            import sys
+            from PIL import Image, ImageTk
+            icon_path = "rocket_icon.png"
+            if hasattr(sys, "_MEIPASS"):
+                bundled_path = os.path.join(sys._MEIPASS, "rocket_icon.png")
+                if os.path.exists(bundled_path):
+                    icon_path = bundled_path
+            
+            if os.path.exists(icon_path):
+                pil_img = Image.open(icon_path)
+                self.rocket_img = ImageTk.PhotoImage(pil_img)
+        except Exception:
+            pass
+
+        if self.rocket_img:
+            rocket_label = tk.Label(
+                formula_inner,
+                image=self.rocket_img,
+                bg=COLOR_INPUT_BG
+            )
+        else:
+            rocket_label = tk.Label(
+                formula_inner,
+                text=" 🚀 ",
+                font=("Segoe UI", 9),
+                bg=COLOR_INPUT_BG,
+                fg=COLOR_TEXT_PRI,
+                padx=2
+            )
+        rocket_label.pack(side=tk.LEFT, padx=(6, 4))
+        
+        # Separator line between rocket and entry
+        sep = tk.Frame(formula_inner, bg=COLOR_BORDER, width=1)
+        sep.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 4))
+        
+        self.formula_entry = tk.Entry(
+            formula_inner,
+            bg=COLOR_INPUT_BG,
+            fg=COLOR_TEXT_PRI,
+            insertbackground=COLOR_TEXT_PRI,
+            bd=0,
+            relief=tk.FLAT,
+            font=("Segoe UI", 9)
+        )
+        self.formula_entry.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=2, pady=4)
+        
+        self.formula_entry.bind("<Return>", self.commit_formula_change)
+        self.formula_entry.bind("<FocusOut>", self.commit_formula_change)
         
         # Lite navbar borderline (in between data header and parts text)
         accent_strip = tk.Frame(self, bg=COLOR_BORDER, height=1)
@@ -347,71 +413,6 @@ class EWayBillApp(tk.Tk):
             fg="#FFFFFF",
             bg="#4C1D1D"
         ).pack()
-
-        # --- Formula Bar ---
-        formula_bar = tk.Frame(self, bg=COLOR_BG, bd=0)
-        formula_bar.pack(fill=tk.X, padx=12, pady=(0, 6))
-        
-        # Border container for formula bar entry
-        formula_border = tk.Frame(formula_bar, bg=COLOR_BORDER, padx=1, pady=1)
-        formula_border.pack(fill=tk.X, expand=True)
-        
-        # Inner frame to hold the entry field and rocket emoji
-        formula_inner = tk.Frame(formula_border, bg=COLOR_INPUT_BG)
-        formula_inner.pack(fill=tk.X, expand=True)
-
-        # Load rocket icon image with PIL
-        self.rocket_img = None
-        try:
-            import os
-            import sys
-            from PIL import Image, ImageTk
-            icon_path = "rocket_icon.png"
-            if hasattr(sys, "_MEIPASS"):
-                bundled_path = os.path.join(sys._MEIPASS, "rocket_icon.png")
-                if os.path.exists(bundled_path):
-                    icon_path = bundled_path
-            
-            if os.path.exists(icon_path):
-                pil_img = Image.open(icon_path)
-                self.rocket_img = ImageTk.PhotoImage(pil_img)
-        except Exception:
-            pass
-
-        if self.rocket_img:
-            rocket_label = tk.Label(
-                formula_inner,
-                image=self.rocket_img,
-                bg=COLOR_INPUT_BG
-            )
-        else:
-            rocket_label = tk.Label(
-                formula_inner,
-                text=" 🚀 ",
-                font=("Segoe UI", 10),
-                bg=COLOR_INPUT_BG,
-                fg=COLOR_TEXT_PRI,
-                padx=5
-            )
-        rocket_label.pack(side=tk.LEFT, padx=(10, 8))
-        
-        # Separator line between rocket and entry
-        sep = tk.Frame(formula_inner, bg=COLOR_BORDER, width=1)
-        sep.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 5))
-        
-        self.formula_entry = tk.Entry(
-            formula_inner,
-            bg=COLOR_INPUT_BG,
-            fg=COLOR_TEXT_PRI,
-            insertbackground=COLOR_TEXT_PRI,
-            bd=0,
-            relief=tk.FLAT,
-            font=("Segoe UI", 10)
-        )
-        self.formula_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=2, pady=4)
-        
-        self.formula_entry.bind("<Return>", self.commit_formula_change)
-        self.formula_entry.bind("<FocusOut>", self.commit_formula_change)
 
         # --- Grid Area Card (Takes maximum space) ---
         grid_card = tk.Frame(self, bg=COLOR_CARD, bd=0)
@@ -532,11 +533,11 @@ class EWayBillApp(tk.Tk):
         self.sheet.highlight_cells(cells=[45], canvas="header", bg="#DC3545", fg="#FFFFFF")
         
         # Narrow the serial number (row index) column width
-        self.sheet.set_index_width(32)
+        #self.sheet.set_index_width(32)
         
         # Set slightly smaller default row and header heights
-        self.sheet.row_height(height=20)
-        self.sheet.set_header_height_pixels(22)
+        #self.sheet.row_height(height=20)
+        #self.sheet.set_header_height_pixels(22)
         
         # Initialize grid with clean empty slate
         self.sheet.set_sheet_data([])
@@ -827,36 +828,34 @@ class EWayBillApp(tk.Tk):
     # --- Settings Dialog Popup ---
 
     def load_settings(self):
-        default_folder = r"F:\New pro 08-08-2026"
+        default_folder = r""
         if not os.path.exists(default_folder):
             default_folder = os.getcwd()
             
         self.settings_file = os.path.join(default_folder, "settings_config.json")
         
         # Standard defaults
-        self.src_path = os.path.join(default_folder, "COCIW2608-0030.xlsx")
-        self.tgt_path = os.path.join(default_folder, "summary.xlsx")
-        self.default_distance = "100"
-        self.default_unit = "UNITS"
+        self.src_path = os.path.join(default_folder, "")
+        self.tgt_path = os.path.join(default_folder, "")
         
         # Consignor details (Bill From profile)
-        self.consignor_gstin = "32AAACH8025R2ZB"
-        self.consignor_name = "HERBALIFE INTERNATIONAL INDIA PVT LTD"
-        self.consignor_address = "C/O FIT 3PL WAREHOUSING PRIVATE LIMITED BUILDING"
-        self.consignor_place = "ERNAKULAM"
-        self.consignor_state = "Kerala"
-        self.consignor_pincode = "683511"
+        self.consignor_gstin = ""
+        self.consignor_name = ""
+        self.consignor_address = ""
+        self.consignor_place = ""
+        self.consignor_state = ""
+        self.consignor_pincode = ""
         
-        self.def_supply_type = "Outward"
-        self.def_sub_type = "Supply"
-        self.def_doc_type = "Delivery Challan"
-        self.def_transaction_type = "Bill To-Ship To"
-        self.def_bill_from_state = "Kerala"
-        self.def_dispatch_from_state = "Kerala"
-        self.def_bill_to_state = "Kerala"
-        self.def_ship_to_state = "Kerala"
-        self.def_trans_mode = "Road"
-        self.def_vehicle_type = "Regular"
+        self.def_supply_type = ""
+        self.def_sub_type = ""
+        self.def_doc_type = ""
+        self.def_transaction_type = ""
+        self.def_bill_from_state = ""
+        self.def_dispatch_from_state = ""
+        self.def_bill_to_state = ""
+        self.def_ship_to_state = ""
+        self.def_trans_mode = ""
+        self.def_vehicle_type = ""
         self.def_trans_name = ""
         self.def_trans_id = ""
         self.def_vehicle_no = ""
@@ -1445,13 +1444,13 @@ class EWayBillApp(tk.Tk):
                 if not date_str:
                     return datetime.date.today().strftime("%d/%m/%Y")
                 formats = [
-                    "%d/%m/%Y",  # 05/08/2026
-                    "%d-%b-%Y",  # 05-Aug-2026
-                    "%d-%B-%Y",  # 05-August-2026
-                    "%Y-%m-%d",  # 2026-08-05
-                    "%d-%m-%Y",  # 05-08-2026
-                    "%d/%b/%Y",  # 05/Aug/2026
-                    "%b %d, %Y", # Aug 05, 2026
+                    "%d/%m/%Y",
+                    "%d-%b-%Y",
+                    "%d-%B-%Y",
+                    "%Y-%m-%d",
+                    "%d-%m-%Y",
+                    "%d/%b/%Y",
+                    "%b %d, %Y",
                 ]
                 for fmt in formats:
                     try:
@@ -1485,20 +1484,16 @@ class EWayBillApp(tk.Tk):
                         break
             
             from_name = str(values[0][2] or "").strip() if len(values) > 0 and len(values[0]) > 2 else ""
-            if not from_name:
-                from_name = "ASUS TECHNOLOGY PVT. LTD."
             from_state = self.def_bill_from_state
             
-            # Simple pincode: extract 5-6 digits from shipper address, do not change it
+            # Extract pincode: extract 5-6 digits from shipper address
             from_pincode = ""
             pin_match = re.search(r"\b\d{5,6}\b", from_addr_full)
             if pin_match:
                 from_pincode = pin_match.group(0)
             
-            # Simple place: check if "ERNAKULAM" is in address
-            from_place = "ERNAKULAM"
-            if "ERNAKULAM" in from_addr_full.upper():
-                from_place = "ERNAKULAM"
+            # Extract place dynamically from address
+            from_place = self.extract_place(from_addr_full, from_pincode)
                 
             def sanitize_address(addr):
                 if not addr:
@@ -2190,12 +2185,12 @@ class EWayBillApp(tk.Tk):
             first_row = rows[0]
             
             # Parsing consignor info from settings
-            c_gstin = getattr(self, "consignor_gstin", "32AAACH8025R2ZB")
-            c_name = getattr(self, "consignor_name", "HERBALIFE INTERNATIONAL INDIA PVT LTD")
-            c_address = getattr(self, "consignor_address", "C/O FIT 3PL WAREHOUSING PRIVATE LIMITED BUILDING")
-            c_place = getattr(self, "consignor_place", "ERNAKULAM")
-            c_state = getattr(self, "consignor_state", "Kerala")
-            c_pincode = getattr(self, "consignor_pincode", "683511")
+            c_gstin = getattr(self, "consignor_gstin", "")
+            c_name = getattr(self, "consignor_name", "")
+            c_address = getattr(self, "consignor_address", "")
+            c_place = getattr(self, "consignor_place", "")
+            c_state = getattr(self, "consignor_state", "")
+            c_pincode = getattr(self, "consignor_pincode", "")
             
             # Map address split
             c_addr1, c_addr2 = self.split_address(c_address)
@@ -2407,13 +2402,13 @@ class EWayBillApp(tk.Tk):
                 return datetime.date.today().strftime("%d/%m/%Y")
             
             formats = [
-                "%d/%m/%Y",  # 05/08/2026
-                "%d-%b-%Y",  # 05-Aug-2026
-                "%d-%B-%Y",  # 05-August-2026
-                "%Y-%m-%d",  # 2026-08-05
-                "%d-%m-%Y",  # 05-08-2026
-                "%d/%b/%Y",  # 05/Aug/2026
-                "%b %d, %Y", # Aug 05, 2026
+                "%d/%m/%Y",
+                "%d-%b-%Y",
+                "%d-%B-%Y",
+                "%Y-%m-%d",
+                "%d-%m-%Y",
+                "%d/%b/%Y",
+                "%b %d, %Y",
             ]
             
             for fmt in formats:
@@ -2791,7 +2786,7 @@ class EWayBillApp(tk.Tk):
         addr = addr.strip()
         parts = [p.strip() for p in addr.split(",") if p.strip()]
         if not parts:
-            return "ERNAKULAM"
+            return ""
         for i, part in enumerate(parts):
             p_upper = part.upper()
             if "KERALA" in p_upper or (pincode and part == pincode):
