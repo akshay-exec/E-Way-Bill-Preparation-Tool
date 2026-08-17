@@ -78,38 +78,74 @@ class ModernButton(tk.Button):
         else:
             self.fg = fg
 
-        # If a pixel-based width or height is passed in kwargs, convert it roughly for tk.Button character units
-        width = kwargs.pop("width", None)
-        if width is not None:
-            if width > 40:
-                width = int(width / 8)
-            kwargs["width"] = width
+        # If a character-based width is passed, convert to pixels for image generation
+        char_width = kwargs.pop("width", None)
+        kwargs.pop("height", None) # Pop height if passed, we compute it based on text
 
-        height = kwargs.pop("height", None)
-        if height is not None:
-            if height > 5:
-                height = int(height / 15)
-            kwargs["height"] = height
+        # Measure text size to size the background image
+        lbl = tk.Label(parent, text=text, font=font)
+        text_width = lbl.winfo_reqwidth()
+        text_height = lbl.winfo_reqheight()
+        lbl.destroy()
+        
+        width = text_width + 28
+        height = text_height + 12
+        
+        if char_width is not None:
+            # If a character width was specified (like 12 or 14), scale to pixels
+            width = max(width, char_width * 8 + 20)
+
+        # Ensure height is at least 32px for a modern pill look
+        height = max(height, 32)
+
+        try:
+            parent_bg = parent.cget("bg")
+        except Exception:
+            parent_bg = COLOR_BG
+
+        # Generate anti-aliased pill-shape images using PIL (draw at 4x and scale down)
+        from PIL import Image, ImageDraw, ImageTk
+        
+        def create_pill(color):
+            scale = 4
+            sw = width * scale
+            sh = height * scale
+            # Create base colored with parent background
+            img = Image.new("RGBA", (sw, sh), parent_bg)
+            draw = ImageDraw.Draw(img)
+            draw.rounded_rectangle(
+                [0, 0, sw, sh],
+                radius=sh // 2,
+                fill=color,
+                outline=color
+            )
+            # Downsample using LANCZOS for premium anti-aliasing
+            resized = img.resize((width, height), Image.Resampling.LANCZOS)
+            return ImageTk.PhotoImage(resized)
+
+        self.normal_photo = create_pill(self.bg)
+        self.hover_photo = create_pill(self.hover_bg)
 
         super().__init__(
             parent,
             text=text,
             command=command,
             font=font,
-            bg=self.bg,
             fg=self.fg,
-            activebackground=self.hover_bg,
             activeforeground=self.fg,
+            image=self.normal_photo,
+            compound="center",
             bd=0,
             relief=tk.FLAT,
-            padx=12,
-            pady=4,
+            bg=parent_bg,
+            activebackground=parent_bg,
             cursor="hand2",
+            highlightthickness=0,
             **kwargs
         )
         
-        self.bind("<Enter>", lambda e: self.config(bg=self.hover_bg))
-        self.bind("<Leave>", lambda e: self.config(bg=self.bg))
+        self.bind("<Enter>", lambda e: self.config(image=self.hover_photo))
+        self.bind("<Leave>", lambda e: self.config(image=self.normal_photo))
 
 class ModernEntry(tk.Frame):
     def __init__(self, parent, width=50, default_value="", **kwargs):
