@@ -9,6 +9,15 @@ import copy
 from tksheet import Sheet
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
+# Make app DPI aware to prevent blurriness on high-DPI displays on Windows
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(2) # PROCESS_PER_MONITOR_DPI_AWARE
+except Exception:
+    try:
+        ctypes.windll.user32.SetProcessDPIAware() # Fallback for Windows 7/8
+    except Exception:
+        pass
+
 # e-Way Bill Bulk Upload column names (46 fields)
 COLUMNS = [
     "Supply Type *", "Sub Type *", "Doc Type *", "Doc No *", "Doc Date *", "Transaction Type *", 
@@ -185,7 +194,7 @@ class EWayBillApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("E-Way Bill Preparation Tool")
-        self.geometry("1400x800")
+        self.geometry("1280x700")
         self.configure(bg=COLOR_BG)
 
         # --- Dark Windows title bar ---
@@ -892,7 +901,7 @@ class EWayBillApp(tk.Tk):
         # Center settings window relative to main window
         # Center settings window relative to main window
         win_w = 820
-        win_h = 700
+        win_h = 580
         parent_x = self.winfo_x()
         parent_y = self.winfo_y()
         parent_w = self.winfo_width()
@@ -1453,7 +1462,7 @@ class EWayBillApp(tk.Tk):
             to_name = re.sub(r"[^a-zA-Z\s]", "", to_name)
             to_name = re.sub(r"\s+", " ", to_name).strip()
 
-            to_gstin = str(values[14][2] or "").strip() if len(values) > 14 and len(values[14]) > 2 else ""
+            to_gstin = str(values[14][7] or "").strip() if len(values) > 14 and len(values[14]) > 7 else ""
             # Use Ship to Address for To_Address columns and split it
             to_addr_full = str(values[10][7] or "").strip() if len(values) > 10 and len(values[10]) > 7 else ""
             to_pincode = str(values[11][2] or "").strip() if len(values) > 11 and len(values[11]) > 2 else ""
@@ -1607,13 +1616,12 @@ class EWayBillApp(tk.Tk):
                 
                 # Custom pincode distance mapping lookup
                 pincode_clean = ship_to_pincode.strip()
+                row_dist_val = ""
                 if hasattr(self, "pincode_distances") and pincode_clean in self.pincode_distances:
                     try:
                         row_dist_val = int(float(self.pincode_distances[pincode_clean]))
                     except Exception:
-                        row_dist_val = default_dist_val
-                else:
-                    row_dist_val = default_dist_val
+                        pass
                 row_data[37] = row_dist_val
                 row_data[38] = self.def_trans_name
                 row_data[39] = self.def_trans_id
