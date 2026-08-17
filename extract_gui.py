@@ -540,6 +540,8 @@ class EWayBillApp(tk.Tk):
         self.bind("<Control-equal>", self.shortcut_insert_row)
         self.bind("<Control-Shift-equal>", self.shortcut_insert_row)
         self.bind("<Control-minus>", self.shortcut_delete_row)
+        self.bind("<Control-d>", self.fill_down)
+        self.bind("<Control-D>", self.fill_down)
         self.bind("<Control-z>", self.custom_undo)
         self.bind("<Control-Z>", self.custom_undo)
         
@@ -548,13 +550,15 @@ class EWayBillApp(tk.Tk):
             try:
                 widget.bind("<Control-z>", self.custom_undo)
                 widget.bind("<Control-Z>", self.custom_undo)
+                widget.bind("<Control-d>", self.fill_down)
+                widget.bind("<Control-D>", self.fill_down)
             except Exception:
                 pass
 
         # --- Bottom Status Bar ---
         self.status = tk.Label(
             self,
-            text="Ready | Shortcuts: Ctrl++ add row, Ctrl+- delete row, Ctrl+Z to undo.",
+            text="Ready | Shortcuts: Ctrl++ add row, Ctrl+- delete row, Ctrl+D fill down, Ctrl+Z to undo.",
             bd=0,
             relief=tk.FLAT,
             anchor=tk.W,
@@ -717,6 +721,41 @@ class EWayBillApp(tk.Tk):
             f"Undo successful. Grid restored to state before last load. "
             f"({remaining} more undo level{'s' if remaining != 1 else ''} available)"
         )
+        return "break"
+
+    def fill_down(self, event=None):
+        """Ctrl+D: Excel-like fill down functionality."""
+        boxes = self.sheet.get_all_selection_boxes()
+        if not boxes:
+            return "break"
+
+        filled_any = False
+        snapshot = [row[:] for row in self.sheet.get_sheet_data()]
+
+        for box in boxes:
+            try:
+                from_r = box[0]
+                from_c = box[1]
+                upto_r = box[2]
+                upto_c = box[3]
+            except Exception:
+                continue
+
+            if upto_r <= from_r:
+                continue
+
+            for col in range(from_c, upto_c + 1):
+                top_val = self.sheet.get_cell_data(from_r, col)
+                for row in range(from_r + 1, upto_r + 1):
+                    self.sheet.set_cell_data(row, col, top_val)
+                    filled_any = True
+
+        if filled_any:
+            self._undo_stack.append(snapshot)
+            if len(self._undo_stack) > 10:
+                self._undo_stack.pop(0)
+            self.sheet.refresh()
+            self.set_status("Filled down values in selection (Ctrl+D).")
         return "break"
 
     def shortcut_insert_row(self, event=None):
