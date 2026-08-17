@@ -58,7 +58,7 @@ COLOR_DANGER_TEXT = "#FFFFFF"      # White Text
 
 # --- Premium Custom UI Widgets ---
 
-class ModernButton(tk.Canvas):
+class ModernButton(tk.Button):
     def __init__(self, parent, text, command, bg=None, hover_bg=None, fg=None, font=("Segoe UI", 9, "bold"), radius=8, **kwargs):
         self.bg = bg or COLOR_PRIMARY
         self.hover_bg = hover_bg or COLOR_PRIMARY_HOVER
@@ -77,59 +77,39 @@ class ModernButton(tk.Canvas):
                 self.fg = COLOR_TEXT_PRI
         else:
             self.fg = fg
-            
-        # Measure text size
-        lbl = tk.Label(parent, text=text, font=font)
-        text_width = lbl.winfo_reqwidth()
-        text_height = lbl.winfo_reqheight()
-        lbl.destroy()
+
+        # If a pixel-based width or height is passed in kwargs, convert it roughly for tk.Button character units
+        width = kwargs.pop("width", None)
+        if width is not None:
+            if width > 40:
+                width = int(width / 8)
+            kwargs["width"] = width
+
+        height = kwargs.pop("height", None)
+        if height is not None:
+            if height > 5:
+                height = int(height / 15)
+            kwargs["height"] = height
+
+        super().__init__(
+            parent,
+            text=text,
+            command=command,
+            font=font,
+            bg=self.bg,
+            fg=self.fg,
+            activebackground=self.hover_bg,
+            activeforeground=self.fg,
+            bd=0,
+            relief=tk.FLAT,
+            padx=12,
+            pady=4,
+            cursor="hand2",
+            **kwargs
+        )
         
-        width = text_width + 24
-        height = text_height + 12
-        
-        try:
-            parent_bg = parent.cget("bg")
-        except:
-            parent_bg = COLOR_BG
-            
-        super().__init__(parent, bg=parent_bg, bd=0, highlightthickness=0, width=width, height=height, cursor="hand2")
-        self.text = text
-        self.command = command
-        self.font = font
-        self.radius = radius
-        self.width = width
-        self.height = height
-        
-        self.draw_button(self.bg)
-        
-        self.bind("<Enter>", lambda e: self.draw_button(self.hover_bg))
-        self.bind("<Leave>", lambda e: self.draw_button(self.bg))
-        self.bind("<Button-1>", lambda e: self.on_click())
-        
-    def draw_button(self, color):
-        self.delete("all")
-        r = self.radius
-        w = self.width
-        h = self.height
-        
-        if r > h / 2:
-            r = int(h / 2)
-        if r > w / 2:
-            r = int(w / 2)
-            
-        self.create_oval(0, 0, 2*r, 2*r, fill=color, outline=color)
-        self.create_oval(w - 2*r, 0, w, 2*r, fill=color, outline=color)
-        self.create_oval(0, h - 2*r, 2*r, h, fill=color, outline=color)
-        self.create_oval(w - 2*r, h - 2*r, w, h, fill=color, outline=color)
-        
-        self.create_rectangle(r, 0, w - r, h, fill=color, outline=color)
-        self.create_rectangle(0, r, w, h - r, fill=color, outline=color)
-        
-        self.create_text(w/2, h/2, text=self.text, fill=self.fg, font=self.font, justify="center")
-        
-    def on_click(self):
-        if self.command:
-            self.command()
+        self.bind("<Enter>", lambda e: self.config(bg=self.hover_bg))
+        self.bind("<Leave>", lambda e: self.config(bg=self.bg))
 
 class ModernEntry(tk.Frame):
     def __init__(self, parent, width=50, default_value="", **kwargs):
