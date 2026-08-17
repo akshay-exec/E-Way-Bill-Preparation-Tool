@@ -859,6 +859,8 @@ class EWayBillApp(tk.Tk):
         self.def_trans_name = ""
         self.def_trans_id = ""
         self.def_vehicle_no = ""
+        self.default_distance = ""
+        self.default_unit = ""
         self.pincode_distances = {}
         
         if os.path.exists(self.settings_file):
